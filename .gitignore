@@ -5,17 +5,18 @@
 .vscode/
 .idea/
 
-# PHP / Composer
+# PHP dependencies
 /vendor/
-/composer.lock
 
-# Env & config
+# Environment and runtime state
 .env
 .env.*
+!.env.example
 *.sqlite
 *.log
+/storage/*
+!/storage/.gitkeep
 
-# Node (si front)
+# Node
 node_modules/
 npm-debug.log*
-yarn.lock

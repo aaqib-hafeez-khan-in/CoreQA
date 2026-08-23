@@ -1,49 +1,35 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Core;
 
 class Router
 {
     private array $routes = [];
-    private Container $c;
-
-    public function __construct(Container $c)
+    public function __construct(private Container $c) {}
+    public function get(string $p, $h): void { $this->map('GET', $p, $h); }
+    public function post(string $p, $h): void { $this->map('POST', $p, $h); }
+    private function map(string $m, string $p, $h): void
     {
-        $this->c = $c;
-    }
-
-    public function get($p, $h)
-    {
-        $this->map('GET', $p, $h);
-    }
-
-    public function post($p, $h)
-    {
-        $this->map('POST', $p, $h);
-    }
-
-    private function map($m, $p, $h)
-    {
-        $re = preg_replace('#\{(\w+):([^}]+)\}#', '(?P<$1>$2)', $p);
+        $re = preg_replace('#\\{(\\w+):([^}]+)\\}#', '(?P<$1>$2)', $p);
         $this->routes[] = [$m, '#^' . $re . '$#', $h];
     }
-
-    public function dispatch($method, $uri)
+    public function dispatch(string $method, string $uri): void
     {
         $uri = rtrim($uri, '/') ?: '/';
-        foreach ($this->routes as [$m, $re, $h]) {
-            if ($m !== $method) {
-                continue;
+        foreach ($this->routes as [$routeMethod, $re, $handler]) {
+            if ($routeMethod !== $method || !preg_match($re, $uri, $matches)) continue;
+            $params = [];
+            foreach ($matches as $key => $value) if (is_string($key)) $params[] = $value;
+            if (is_array($handler)) {
+                [$class, $action] = $handler;
+                $object = new $class($this->c);
+                $object->$action(...$params);
+                return;
             }
-            if (preg_match($re, $uri, $mch)) {
-                $params = array_filter($mch, 'is_string', ARRAY_FILTER_USE_KEY);
-                if (is_array($h)) {
-                    [$cls, $meth] = $h;
-                    $obj = new $cls($this->c);
-                    return $obj->$meth(...array_values($params));
-                }
-                return $h(...array_values($params));
-            }
+            $handler(...$params);
+            return;
         }
         http_response_code(404);
         echo 'Not Found';

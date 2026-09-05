@@ -18,6 +18,8 @@ return function($r) {
     $r->post('/register', [AuthController::class, 'register']);
     $r->post('/logout', [AuthController::class, 'logout']);
     $r->get('/me', [PanelController::class, 'me']);
+    $r->post('/me/account', [PanelController::class, 'updateAccount']);
+    $r->post('/me/password', [PanelController::class, 'updatePassword']);
     $r->get('/panel/admin', [AdminController::class, 'dashboard']);
     $r->get('/panel/admin/users/{id:\d+}/edit', [AdminController::class, 'editUser']);
     $r->post('/panel/admin/users/{id:\d+}/update', [AdminController::class, 'updateUser']);

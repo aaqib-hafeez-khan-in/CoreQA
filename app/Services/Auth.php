@@ -28,6 +28,11 @@ class Auth
     {
         $u = User::byEmail($this->c->get('db'), $email);
         if (!$u || !password_verify($password, $u['password_hash'])) return false;
+
+        if (password_needs_rehash($u['password_hash'], PASSWORD_DEFAULT)) {
+            User::updatePassword($this->c->get('db'), (int)$u['id'], $password);
+        }
+
         session_regenerate_id(true);
         $_SESSION['user'] = [
             'id' => (int)$u['id'],
@@ -38,12 +43,36 @@ class Auth
         return true;
     }
 
+    public function refreshUser(): void
+    {
+        $id = $this->id();
+        if ($id === null) return;
+        $u = User::findById($this->c->get('db'), $id);
+        if ($u === null) {
+            $this->logout();
+            return;
+        }
+        $_SESSION['user'] = [
+            'id' => (int)$u['id'],
+            'name' => $u['name'],
+            'email' => $u['email'],
+            'role' => $u['role'],
+        ];
+    }
+
     public function logout(): void
     {
         $_SESSION = [];
         if (ini_get('session.use_cookies')) {
             $params = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], (bool)$params['secure'], (bool)$params['httponly']);
+            setcookie(session_name(), '', [
+                'expires' => time() - 42000,
+                'path' => $params['path'],
+                'domain' => $params['domain'],
+                'secure' => (bool)$params['secure'],
+                'httponly' => (bool)$params['httponly'],
+                'samesite' => $params['samesite'] ?? 'Lax',
+            ]);
         }
         session_destroy();
     }

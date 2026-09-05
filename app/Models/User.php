@@ -20,6 +20,13 @@ class User
         return $s->fetch() ?: null;
     }
 
+    public static function emailExistsForOther(PDO $db, string $email, int $id): bool
+    {
+        $s = $db->prepare("SELECT 1 FROM users WHERE email=? AND id<>? LIMIT 1");
+        $s->execute([$email, $id]);
+        return (bool)$s->fetchColumn();
+    }
+
     public static function create(PDO $db, string $name, string $email, string $pass): int
     {
         $db->prepare("INSERT INTO users(name, email, password_hash, role, created_at) VALUES(?, ?, ?, 'user', CURRENT_TIMESTAMP)")
@@ -41,6 +48,12 @@ class User
     {
         $db->prepare("UPDATE users SET name=?, email=?, role=? WHERE id=?")
             ->execute([$name, $email, $role, $id]);
+    }
+
+    public static function updateAccount(PDO $db, int $id, string $name, string $email): void
+    {
+        $db->prepare("UPDATE users SET name=?, email=? WHERE id=?")
+            ->execute([$name, $email, $id]);
     }
 
     public static function updatePassword(PDO $db, int $id, string $newPassword): void
